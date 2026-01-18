@@ -1,27 +1,20 @@
---// =========================
---// AUTO TRADE GUI (FIXED)
---// =========================
+--// AUTO TRADE ITEM DETECTION FIX (SAFE)
 
--- Services
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-
 local Player = Players.LocalPlayer
 
 -- =========================
--- Utility: Safe Item Match
+-- Item Name Matching (FIX)
 -- =========================
 local function matchesItem(toolName, targetName)
-    if not toolName or not targetName then return false end
-    return string.find(
-        string.lower(toolName),
-        string.lower(targetName),
-        1,
-        true
-    ) ~= nil
+    return toolName
+        and targetName
+        and string.find(
+            string.lower(toolName),
+            string.lower(targetName),
+            1,
+            true
+        ) ~= nil
 end
 
 -- =========================
@@ -29,8 +22,8 @@ end
 -- =========================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoTradeGUI"
-ScreenGui.Parent = Player.PlayerGui
 ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = Player.PlayerGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.fromOffset(640, 480)
@@ -48,7 +41,7 @@ Title.Text = "Auto Trade System"
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 20
 Title.TextColor3 = Color3.new(1,1,1)
-Title.TextXAlignment = Left
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = MainFrame
 
 local CounterLabel = Instance.new("TextLabel")
@@ -72,54 +65,26 @@ StatusLabel.Text = "Status: Ready"
 StatusLabel.Parent = MainFrame
 
 -- =========================
--- Settings
--- =========================
-local settings = {
-    receiver = "margoddingba123",
-    itemName = "Electric Esok Sekolah",
-    amount = 10 -- 0 = all
-}
-
--- =========================
--- Item Counting (FIXED)
+-- Item Counter (FIXED)
 -- =========================
 local function countItems()
     local count = 0
 
     for _, tool in ipairs(Player.Backpack:GetChildren()) do
-        if tool:IsA("Tool") and matchesItem(tool.Name, settings.itemName) then
+        if tool:IsA("Tool") and matchesItem(tool.Name, "Electric Esok Sekolah") then
             count += 1
         end
     end
 
     if Player.Character then
         for _, tool in ipairs(Player.Character:GetChildren()) do
-            if tool:IsA("Tool") and matchesItem(tool.Name, settings.itemName) then
+            if tool:IsA("Tool") and matchesItem(tool.Name, "Electric Esok Sekolah") then
                 count += 1
             end
         end
     end
 
     return count
-end
-
--- =========================
--- Find Item (FIXED)
--- =========================
-local function getItem()
-    for _, tool in ipairs(Player.Backpack:GetChildren()) do
-        if tool:IsA("Tool") and matchesItem(tool.Name, settings.itemName) then
-            return tool
-        end
-    end
-
-    if Player.Character then
-        for _, tool in ipairs(Player.Character:GetChildren()) do
-            if tool:IsA("Tool") and matchesItem(tool.Name, settings.itemName) then
-                return tool
-            end
-        end
-    end
 end
 
 -- =========================
@@ -141,48 +106,7 @@ task.spawn(function()
 end)
 
 -- =========================
--- Auto Trade Logic
--- =========================
-local autoTrade = false
-
-local function updateStatus(msg, color)
-    StatusLabel.Text = "Status: " .. msg
-    StatusLabel.TextColor3 = color or Color3.fromRGB(200,200,200)
-end
-
-local function startAutoTrade()
-    if autoTrade then return end
-
-    local initial = countItems()
-    if initial == 0 then
-        updateStatus("No items found!", Color3.fromRGB(255,100,100))
-        return
-    end
-
-    autoTrade = true
-    updateStatus("Trading...", Color3.fromRGB(65,105,225))
-
-    task.spawn(function()
-        while autoTrade do
-            task.wait(0.3)
-
-            local tool = getItem()
-            if not tool then
-                updateStatus("Finished", Color3.fromRGB(50,205,50))
-                autoTrade = false
-                break
-            end
-
-            local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum:EquipTool(tool)
-            end
-        end
-    end)
-end
-
--- =========================
--- DEBUG (Run once)
+-- DEBUG (IMPORTANT)
 -- =========================
 print("=== INVENTORY DEBUG ===")
 for _, tool in ipairs(Player.Backpack:GetChildren()) do
@@ -190,14 +114,13 @@ for _, tool in ipairs(Player.Backpack:GetChildren()) do
         print("Backpack:", "[" .. tool.Name .. "]")
     end
 end
-if Player.Character then
-    for _, tool in ipairs(Player.Character:GetChildren()) do
+
+Player.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    for _, tool in ipairs(char:GetChildren()) do
         if tool:IsA("Tool") then
             print("Equipped:", "[" .. tool.Name .. "]")
         end
     end
-end
+end)
 print("=======================")
-
-updateStatus("Ready", Color3.fromRGB(200,200,200))
-
