@@ -1,877 +1,203 @@
--- GUI Setup
-local Player = game:GetService("Players").LocalPlayer
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
+--// =========================
+--// AUTO TRADE GUI (FIXED)
+--// =========================
 
--- Create ScreenGui
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local Player = Players.LocalPlayer
+
+-- =========================
+-- Utility: Safe Item Match
+-- =========================
+local function matchesItem(toolName, targetName)
+    if not toolName or not targetName then return false end
+    return string.find(
+        string.lower(toolName),
+        string.lower(targetName),
+        1,
+        true
+    ) ~= nil
+end
+
+-- =========================
+-- GUI
+-- =========================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoTradeGUI"
 ScreenGui.Parent = Player.PlayerGui
 ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Enabled = true
 
--- Simple test to see if GUI is being created
-print("Creating GUI...")
-
--- Detect if running on mobile
-local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-local isTablet = isMobile and (game:GetService("GuiService"):GetScreenResolution().Y > 1000)
-
--- Fixed 640x480 resolution
-local guiWidth = 640
-local guiHeight = 480
-local scaleFactor = isMobile and 1.2 or 1.0
-
-if isTablet then
-    scaleFactor = 1.1
-elseif isMobile then
-    scaleFactor = 1.3
-end
-
--- Main Frame with fixed 640x480 resolution
 local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, guiWidth, 0, guiHeight)
-MainFrame.Position = UDim2.new(0.5, -guiWidth/2, 0.5, -guiHeight/2)
+MainFrame.Size = UDim2.fromOffset(640, 480)
+MainFrame.Position = UDim2.fromScale(0.5, 0.5)
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
-
--- Slightly rounded corners
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
-UICorner.Parent = MainFrame
-
--- Title Bar
-local TitleBar = Instance.new("Frame")
-TitleBar.Name = "TitleBar"
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-TitleBar.Parent = MainFrame
-
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 8)
-TitleCorner.Parent = TitleBar
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(1, -80, 1, 0)
-Title.Position = UDim2.new(0, 15, 0, 0)
+Title.Size = UDim2.new(1, -20, 0, 40)
+Title.Position = UDim2.fromOffset(10, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "Auto Trade System"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 20
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
-
--- Minimize Button
-local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Name = "MinimizeButton"
-MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
-MinimizeButton.Position = UDim2.new(1, -70, 0.5, -15)
-MinimizeButton.AnchorPoint = Vector2.new(0, 0.5)
-MinimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-MinimizeButton.Text = "_"
-MinimizeButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-MinimizeButton.Font = Enum.Font.GothamBold
-MinimizeButton.TextSize = 24
-MinimizeButton.Parent = TitleBar
-
-local MinimizeCorner = Instance.new("UICorner")
-MinimizeCorner.CornerRadius = UDim.new(0, 6)
-MinimizeCorner.Parent = MinimizeButton
-
--- Close Button
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -35, 0.5, -15)
-CloseButton.AnchorPoint = Vector2.new(0, 0.5)
-CloseButton.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(255, 100, 100)
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 18
-CloseButton.Parent = TitleBar
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
-CloseCorner.Parent = CloseButton
-
--- Minimized Bar (hidden initially)
-local MinimizedBar = Instance.new("Frame")
-MinimizedBar.Name = "MinimizedBar"
-MinimizedBar.Size = UDim2.new(0, 180, 0, 40)
-MinimizedBar.Position = UDim2.new(0, 10, 0, 10)
-MinimizedBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-MinimizedBar.BorderSizePixel = 0
-MinimizedBar.Visible = false
-MinimizedBar.Parent = ScreenGui
-
-local MinimizedCorner = Instance.new("UICorner")
-MinimizedCorner.CornerRadius = UDim.new(0, 8)
-MinimizedCorner.Parent = MinimizedBar
-
-local MinimizedTitle = Instance.new("TextLabel")
-MinimizedTitle.Name = "MinimizedTitle"
-MinimizedTitle.Size = UDim2.new(1, -40, 1, 0)
-MinimizedTitle.Position = UDim2.new(0, 10, 0, 0)
-MinimizedTitle.BackgroundTransparency = 1
-MinimizedTitle.Text = "Auto Trade"
-MinimizedTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizedTitle.Font = Enum.Font.GothamBold
-MinimizedTitle.TextSize = 16
-MinimizedTitle.TextXAlignment = Enum.TextXAlignment.Left
-MinimizedTitle.Parent = MinimizedBar
-
-local MaximizeButton = Instance.new("TextButton")
-MaximizeButton.Name = "MaximizeButton"
-MaximizeButton.Size = UDim2.new(0, 30, 0, 30)
-MaximizeButton.Position = UDim2.new(1, -35, 0.5, -15)
-MaximizeButton.AnchorPoint = Vector2.new(0, 0.5)
-MaximizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-MaximizeButton.Text = "^"
-MaximizeButton.TextColor3 = Color3.fromRGB(50, 205, 50)
-MaximizeButton.Font = Enum.Font.GothamBold
-MaximizeButton.TextSize = 18
-MaximizeButton.Parent = MinimizedBar
-
-local MaximizeCorner = Instance.new("UICorner")
-MaximizeCorner.CornerRadius = UDim.new(0, 6)
-MaximizeCorner.Parent = MaximizeButton
-
--- Content Frame
-local ContentFrame = Instance.new("Frame")
-ContentFrame.Name = "ContentFrame"
-ContentFrame.Size = UDim2.new(1, -20, 1, -50)
-ContentFrame.Position = UDim2.new(0, 10, 0, 45)
-ContentFrame.BackgroundTransparency = 1
-ContentFrame.Parent = MainFrame
-
--- Inventory Counter Section
-local InventorySection = Instance.new("Frame")
-InventorySection.Name = "InventorySection"
-InventorySection.Size = UDim2.new(1, 0, 0, 70)
-InventorySection.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-InventorySection.Parent = ContentFrame
-
-local InventoryCorner = Instance.new("UICorner")
-InventoryCorner.CornerRadius = UDim.new(0, 8)
-InventoryCorner.Parent = InventorySection
-
-local InventoryTitle = Instance.new("TextLabel")
-InventoryTitle.Name = "InventoryTitle"
-InventoryTitle.Size = UDim2.new(1, -20, 0, 30)
-InventoryTitle.Position = UDim2.new(0, 15, 0, 5)
-InventoryTitle.BackgroundTransparency = 1
-InventoryTitle.Text = "CURRENT INVENTORY"
-InventoryTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-InventoryTitle.Font = Enum.Font.GothamBold
-InventoryTitle.TextSize = 18
-InventoryTitle.TextXAlignment = Enum.TextXAlignment.Left
-InventoryTitle.Parent = InventorySection
-
--- Counter Display
-local CounterDisplay = Instance.new("Frame")
-CounterDisplay.Name = "CounterDisplay"
-CounterDisplay.Size = UDim2.new(1, -20, 0, 30)
-CounterDisplay.Position = UDim2.new(0, 15, 0, 35)
-CounterDisplay.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-CounterDisplay.Parent = InventorySection
-
-local CounterCorner = Instance.new("UICorner")
-CounterCorner.CornerRadius = UDim.new(0, 6)
-CounterCorner.Parent = CounterDisplay
-
-local ItemNameLabel = Instance.new("TextLabel")
-ItemNameLabel.Name = "ItemNameLabel"
-ItemNameLabel.Size = UDim2.new(0.7, 0, 1, 0)
-ItemNameLabel.Position = UDim2.new(0, 15, 0, 0)
-ItemNameLabel.BackgroundTransparency = 1
-ItemNameLabel.Text = "Electric Esok Sekolah:"
-ItemNameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-ItemNameLabel.Font = Enum.Font.GothamMedium
-ItemNameLabel.TextSize = 16
-ItemNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-ItemNameLabel.Parent = CounterDisplay
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextXAlignment = Left
+Title.Parent = MainFrame
 
 local CounterLabel = Instance.new("TextLabel")
-CounterLabel.Name = "CounterLabel"
-CounterLabel.Size = UDim2.new(0.2, 0, 1, 0)
-CounterLabel.Position = UDim2.new(0.8, -10, 0, 0)
+CounterLabel.Size = UDim2.new(1, -40, 0, 40)
+CounterLabel.Position = UDim2.fromOffset(20, 60)
 CounterLabel.BackgroundTransparency = 1
-CounterLabel.Text = "0"
-CounterLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 CounterLabel.Font = Enum.Font.GothamBold
-CounterLabel.TextSize = 20
-CounterLabel.TextXAlignment = Enum.TextXAlignment.Right
-CounterLabel.Parent = CounterDisplay
-
--- Configuration Section
-local ConfigSection = Instance.new("Frame")
-ConfigSection.Name = "ConfigSection"
-ConfigSection.Size = UDim2.new(1, 0, 0, 140)
-ConfigSection.Position = UDim2.new(0, 0, 0, 80)
-ConfigSection.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-ConfigSection.Parent = ContentFrame
-
-local ConfigCorner = Instance.new("UICorner")
-ConfigCorner.CornerRadius = UDim.new(0, 8)
-ConfigCorner.Parent = ConfigSection
-
-local ConfigTitle = Instance.new("TextLabel")
-ConfigTitle.Name = "ConfigTitle"
-ConfigTitle.Size = UDim2.new(1, -20, 0, 35)
-ConfigTitle.Position = UDim2.new(0, 15, 0, 0)
-ConfigTitle.BackgroundTransparency = 1
-ConfigTitle.Text = "TRADE SETTINGS"
-ConfigTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-ConfigTitle.Font = Enum.Font.GothamBold
-ConfigTitle.TextSize = 18
-ConfigTitle.TextXAlignment = Enum.TextXAlignment.Left
-ConfigTitle.Parent = ConfigSection
-
--- Receiver Input
-local ReceiverLabel = Instance.new("TextLabel")
-ReceiverLabel.Name = "ReceiverLabel"
-ReceiverLabel.Size = UDim2.new(0.25, -10, 0, 30)
-ReceiverLabel.Position = UDim2.new(0, 15, 0, 40)
-ReceiverLabel.BackgroundTransparency = 1
-ReceiverLabel.Text = "Target:"
-ReceiverLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-ReceiverLabel.Font = Enum.Font.Gotham
-ReceiverLabel.TextSize = 16
-ReceiverLabel.TextXAlignment = Enum.TextXAlignment.Left
-ReceiverLabel.Parent = ConfigSection
-
-local ReceiverBox = Instance.new("TextBox")
-ReceiverBox.Name = "ReceiverBox"
-ReceiverBox.Size = UDim2.new(0.75, -20, 0, 35)
-ReceiverBox.Position = UDim2.new(0.25, 0, 0, 40)
-ReceiverBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-ReceiverBox.BorderSizePixel = 0
-ReceiverBox.Text = "margoddingba123"
-ReceiverBox.PlaceholderText = "Enter target username..."
-ReceiverBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-ReceiverBox.Font = Enum.Font.Gotham
-ReceiverBox.TextSize = 16
-ReceiverBox.Parent = ConfigSection
-
-local ReceiverCorner = Instance.new("UICorner")
-ReceiverCorner.CornerRadius = UDim.new(0, 6)
-ReceiverCorner.Parent = ReceiverBox
-
--- Item Name Input
-local ItemNameLabel2 = Instance.new("TextLabel")
-ItemNameLabel2.Name = "ItemNameLabel2"
-ItemNameLabel2.Size = UDim2.new(0.25, -10, 0, 30)
-ItemNameLabel2.Position = UDim2.new(0, 15, 0, 85)
-ItemNameLabel2.BackgroundTransparency = 1
-ItemNameLabel2.Text = "Item:"
-ItemNameLabel2.TextColor3 = Color3.fromRGB(200, 200, 200)
-ItemNameLabel2.Font = Enum.Font.Gotham
-ItemNameLabel2.TextSize = 16
-ItemNameLabel2.TextXAlignment = Enum.TextXAlignment.Left
-ItemNameLabel2.Parent = ConfigSection
-
-local ItemNameBox = Instance.new("TextBox")
-ItemNameBox.Name = "ItemNameBox"
-ItemNameBox.Size = UDim2.new(0.75, -20, 0, 35)
-ItemNameBox.Position = UDim2.new(0.25, 0, 0, 85)
-ItemNameBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-ItemNameBox.BorderSizePixel = 0
-ItemNameBox.Text = "Electric Esok Sekolah"
-ItemNameBox.PlaceholderText = "Enter item name..."
-ItemNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-ItemNameBox.Font = Enum.Font.Gotham
-ItemNameBox.TextSize = 16
-ItemNameBox.Parent = ConfigSection
-
-local ItemNameCorner = Instance.new("UICorner")
-ItemNameCorner.CornerRadius = UDim.new(0, 6)
-ItemNameCorner.Parent = ItemNameBox
-
--- Controls Section
-local ControlsSection = Instance.new("Frame")
-ControlsSection.Name = "ControlsSection"
-ControlsSection.Size = UDim2.new(1, 0, 0, 210)
-ControlsSection.Position = UDim2.new(0, 0, 0, 230)
-ControlsSection.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-ControlsSection.Parent = ContentFrame
-
-local ControlsCorner = Instance.new("UICorner")
-ControlsCorner.CornerRadius = UDim.new(0, 8)
-ControlsCorner.Parent = ControlsSection
-
-local ControlsTitle = Instance.new("TextLabel")
-ControlsTitle.Name = "ControlsTitle"
-ControlsTitle.Size = UDim2.new(1, -20, 0, 35)
-ControlsTitle.Position = UDim2.new(0, 15, 0, 0)
-ControlsTitle.BackgroundTransparency = 1
-ControlsTitle.Text = "CONTROLS"
-ControlsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-ControlsTitle.Font = Enum.Font.GothamBold
-ControlsTitle.TextSize = 18
-ControlsTitle.TextXAlignment = Enum.TextXAlignment.Left
-ControlsTitle.Parent = ControlsSection
-
--- Amount Input Frame
-local AmountFrame = Instance.new("Frame")
-AmountFrame.Name = "AmountFrame"
-AmountFrame.Size = UDim2.new(1, -20, 0, 45)
-AmountFrame.Position = UDim2.new(0, 15, 0, 40)
-AmountFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-AmountFrame.Parent = ControlsSection
-
-local AmountFrameCorner = Instance.new("UICorner")
-AmountFrameCorner.CornerRadius = UDim.new(0, 6)
-AmountFrameCorner.Parent = AmountFrame
-
-local AmountLabel = Instance.new("TextLabel")
-AmountLabel.Name = "AmountLabel"
-AmountLabel.Size = UDim2.new(0.5, 0, 1, 0)
-AmountLabel.Position = UDim2.new(0, 15, 0, 0)
-AmountLabel.BackgroundTransparency = 1
-AmountLabel.Text = "Amount to Give:"
-AmountLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-AmountLabel.Font = Enum.Font.Gotham
-AmountLabel.TextSize = 16
-AmountLabel.TextXAlignment = Enum.TextXAlignment.Left
-AmountLabel.Parent = AmountFrame
-
-local AmountBox = Instance.new("TextBox")
-AmountBox.Name = "AmountBox"
-AmountBox.Size = UDim2.new(0.4, 0, 0.8, 0)
-AmountBox.Position = UDim2.new(0.6, 0, 0.1, 0)
-AmountBox.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
-AmountBox.BorderSizePixel = 0
-AmountBox.Text = "10"
-AmountBox.PlaceholderText = "0 for all"
-AmountBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-AmountBox.Font = Enum.Font.Gotham
-AmountBox.TextSize = 16
-AmountBox.Parent = AmountFrame
-
-local AmountBoxCorner = Instance.new("UICorner")
-AmountBoxCorner.CornerRadius = UDim.new(0, 6)
-AmountBoxCorner.Parent = AmountBox
-
--- Auto Trade Button
-local AutoTradeButton = Instance.new("TextButton")
-AutoTradeButton.Name = "AutoTradeButton"
-AutoTradeButton.Size = UDim2.new(1, -20, 0, 50)
-AutoTradeButton.Position = UDim2.new(0, 15, 0, 95)
-AutoTradeButton.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
-AutoTradeButton.Text = "START AUTO TRADE"
-AutoTradeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoTradeButton.Font = Enum.Font.GothamBold
-AutoTradeButton.TextSize = 18
-AutoTradeButton.Parent = ControlsSection
-
-local AutoTradeCorner = Instance.new("UICorner")
-AutoTradeCorner.CornerRadius = UDim.new(0, 8)
-AutoTradeCorner.Parent = AutoTradeButton
-
--- Auto Accept Button
-local AutoAcceptButton = Instance.new("TextButton")
-AutoAcceptButton.Name = "AutoAcceptButton"
-AutoAcceptButton.Size = UDim2.new(1, -20, 0, 50)
-AutoAcceptButton.Position = UDim2.new(0, 15, 0, 155)
-AutoAcceptButton.BackgroundColor3 = Color3.fromRGB(50, 205, 50)
-AutoAcceptButton.Text = "ENABLE AUTO ACCEPT"
-AutoAcceptButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-AutoAcceptButton.Font = Enum.Font.GothamBold
-AutoAcceptButton.TextSize = 18
-AutoAcceptButton.Parent = ControlsSection
-
-local AutoAcceptCorner = Instance.new("UICorner")
-AutoAcceptCorner.CornerRadius = UDim.new(0, 8)
-AutoAcceptCorner.Parent = AutoAcceptButton
-
--- Status Display
-local StatusFrame = Instance.new("Frame")
-StatusFrame.Name = "StatusFrame"
-StatusFrame.Size = UDim2.new(1, -20, 0, 40)
-StatusFrame.Position = UDim2.new(0, 15, 0, 215)
-StatusFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-StatusFrame.Parent = ControlsSection
-
-local StatusCorner = Instance.new("UICorner")
-StatusCorner.CornerRadius = UDim.new(0, 6)
-StatusCorner.Parent = StatusFrame
+CounterLabel.TextSize = 22
+CounterLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+CounterLabel.Text = "0"
+CounterLabel.Parent = MainFrame
 
 local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Name = "StatusLabel"
-StatusLabel.Size = UDim2.new(1, -20, 1, 0)
-StatusLabel.Position = UDim2.new(0, 15, 0, 0)
+StatusLabel.Size = UDim2.new(1, -40, 0, 30)
+StatusLabel.Position = UDim2.fromOffset(20, 420)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Status: Ready"
-StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextSize = 16
-StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-StatusLabel.Parent = StatusFrame
+StatusLabel.TextColor3 = Color3.fromRGB(200,200,200)
+StatusLabel.Text = "Status: Ready"
+StatusLabel.Parent = MainFrame
 
--- Variables
-local isDragging = false
-local isMinimized = false
-local dragStart, startPos
-local autoTradeRunning = false
-local autoAcceptEnabled = false
-
--- Configuration
-local script_settings = {
+-- =========================
+-- Settings
+-- =========================
+local settings = {
     receiver = "margoddingba123",
-    brainrot = "Electric Esok Sekolah",
-    toGive = 10, -- 0 means give all
+    itemName = "Electric Esok Sekolah",
+    amount = 10 -- 0 = all
 }
 
--- Get remote events
-local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
-local PromptTradeEvent = RemoteEvents:WaitForChild("PromptTrade")
-local PromptGiftEvent = RemoteEvents:WaitForChild("PromptGift")
-local CompleteTradeEvent = RemoteEvents:WaitForChild("CompleteTrade")
-local CompleteGiftEvent = RemoteEvents:WaitForChild("CompleteGift")
-
--- Counter variables
-local counterValue = 0
-local initialCounter = 0
-local isTaskRunning = false
-
-print("GUI elements created successfully!")
-
--- Function to scale touch input for mobile
-local function getScaledTouchInput(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        local viewportSize = workspace.CurrentCamera.ViewportSize
-        local guiScale = ScreenGui.AbsoluteSize / viewportSize
-        return input.Position * guiScale
-    end
-    return input.Position
-end
-
--- Make GUI Draggable
-TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isDragging = true
-        dragStart = getScaledTouchInput(input)
-        startPos = MainFrame.Position
-        local conn
-        conn = input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                isDragging = false
-                conn:Disconnect()
-            end
-        end)
-    end
-end)
-
-TitleBar.InputChanged:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and isDragging then
-        local currentPos = getScaledTouchInput(input)
-        local delta = currentPos - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, 
-                                      startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Make Minimized Bar Draggable
-MinimizedBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isDragging = true
-        dragStart = getScaledTouchInput(input)
-        startPos = MinimizedBar.Position
-        local conn
-        conn = input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                isDragging = false
-                conn:Disconnect()
-            end
-        end)
-    end
-end)
-
-MinimizedBar.InputChanged:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and isDragging then
-        local currentPos = getScaledTouchInput(input)
-        local delta = currentPos - dragStart
-        MinimizedBar.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, 
-                                         startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Function to minimize GUI
-local function minimizeGUI()
-    isMinimized = true
-    MainFrame.Visible = false
-    MinimizedBar.Visible = true
-    
-    -- Show counter in minimized bar
-    MinimizedTitle.Text = "Auto Trade [" .. counterValue .. "]"
-end
-
--- Function to maximize GUI
-local function maximizeGUI()
-    isMinimized = false
-    MainFrame.Visible = true
-    MinimizedBar.Visible = false
-end
-
--- Button Functionality
-MinimizeButton.MouseButton1Click:Connect(minimizeGUI)
-MaximizeButton.MouseButton1Click:Connect(maximizeGUI)
-
--- Touch support for mobile
-if isMobile then
-    MinimizeButton.TouchTap:Connect(minimizeGUI)
-    MaximizeButton.TouchTap:Connect(maximizeGUI)
-end
-
--- Close Button Functionality
-CloseButton.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
-if isMobile then
-    CloseButton.TouchTap:Connect(function()
-        ScreenGui:Destroy()
-    end)
-end
-
--- Function to count items
+-- =========================
+-- Item Counting (FIXED)
+-- =========================
 local function countItems()
     local count = 0
-    
-    -- Count in backpack
-    if Player.Backpack then
-        for _, item in pairs(Player.Backpack:GetChildren()) do
-            if item.Name == script_settings.brainrot then
-                count = count + 1
-            end
+
+    for _, tool in ipairs(Player.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and matchesItem(tool.Name, settings.itemName) then
+            count += 1
         end
     end
-    
-    -- Count in character (if equipped)
+
     if Player.Character then
-        for _, item in pairs(Player.Character:GetChildren()) do
-            if item.Name == script_settings.brainrot and item:IsA("Tool") then
-                count = count + 1
+        for _, tool in ipairs(Player.Character:GetChildren()) do
+            if tool:IsA("Tool") and matchesItem(tool.Name, settings.itemName) then
+                count += 1
             end
         end
     end
-    
+
     return count
 end
 
--- Function to update the status
-local function updateStatus(message, color)
-    StatusLabel.Text = "Status: " .. message
-    StatusLabel.TextColor3 = color or Color3.fromRGB(200, 200, 200)
-    
-    -- Update minimized bar if minimized
-    if isMinimized then
-        MinimizedTitle.Text = "Auto Trade [" .. counterValue .. "]"
+-- =========================
+-- Find Item (FIXED)
+-- =========================
+local function getItem()
+    for _, tool in ipairs(Player.Backpack:GetChildren()) do
+        if tool:IsA("Tool") and matchesItem(tool.Name, settings.itemName) then
+            return tool
+        end
+    end
+
+    if Player.Character then
+        for _, tool in ipairs(Player.Character:GetChildren()) do
+            if tool:IsA("Tool") and matchesItem(tool.Name, settings.itemName) then
+                return tool
+            end
+        end
     end
 end
 
--- Update counter in real-time
-spawn(function()
-    while true do
-        counterValue = countItems()
-        CounterLabel.Text = tostring(counterValue)
-        
-        -- Change color based on count
-        if counterValue == 0 then
-            CounterLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        elseif counterValue < 5 then
-            CounterLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+-- =========================
+-- Live Counter
+-- =========================
+task.spawn(function()
+    while task.wait(0.2) do
+        local c = countItems()
+        CounterLabel.Text = tostring(c)
+
+        if c == 0 then
+            CounterLabel.TextColor3 = Color3.fromRGB(255,100,100)
+        elseif c < 5 then
+            CounterLabel.TextColor3 = Color3.fromRGB(255,165,0)
         else
-            CounterLabel.TextColor3 = Color3.fromRGB(50, 205, 50)
+            CounterLabel.TextColor3 = Color3.fromRGB(50,205,50)
         end
-        
-        -- Update minimized bar if minimized
-        if isMinimized then
-            MinimizedTitle.Text = "Auto Trade [" .. counterValue .. "]"
-        end
-        
-        task.wait(0.1)
     end
 end)
 
--- Improved Trading Function
+-- =========================
+-- Auto Trade Logic
+-- =========================
+local autoTrade = false
+
+local function updateStatus(msg, color)
+    StatusLabel.Text = "Status: " .. msg
+    StatusLabel.TextColor3 = color or Color3.fromRGB(200,200,200)
+end
+
 local function startAutoTrade()
-    if autoTradeRunning then return end
-    
-    -- Update settings from GUI
-    script_settings.receiver = ReceiverBox.Text
-    script_settings.brainrot = ItemNameBox.Text
-    script_settings.toGive = tonumber(AmountBox.Text) or 0
-    
-    if script_settings.receiver == "" then
-        updateStatus("Enter target username!", Color3.fromRGB(255, 100, 100))
+    if autoTrade then return end
+
+    local initial = countItems()
+    if initial == 0 then
+        updateStatus("No items found!", Color3.fromRGB(255,100,100))
         return
     end
-    
-    if script_settings.brainrot == "" then
-        updateStatus("Enter item name!", Color3.fromRGB(255, 100, 100))
-        return
-    end
-    
-    -- Get initial counter
-    initialCounter = countItems()
-    if initialCounter == 0 then
-        updateStatus("No " .. script_settings.brainrot .. " found!", Color3.fromRGB(255, 100, 100))
-        return
-    end
-    
-    autoTradeRunning = true
-    updateStatus("Trading...", Color3.fromRGB(65, 105, 225))
-    AutoTradeButton.Text = "STOP TRADING"
-    AutoTradeButton.BackgroundColor3 = Color3.fromRGB(220, 20, 60)
-    
-    -- Main trading loop
-    spawn(function()
-        while autoTradeRunning do
-            task.wait(0.1) -- Prevent lag
-            
-            local receiverPlayer = Players:FindFirstChild(script_settings.receiver)
-            if not receiverPlayer then
-                updateStatus("Receiver not found", Color3.fromRGB(255, 165, 0))
-                task.wait(1)
-                continue
-            end
-            
-            local character = Player.Character
-            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-            if not character or not humanoid or humanoid.Health <= 0 then
-                task.wait(1)
-                continue
-            end
-            
-            -- Count current items
-            local currentCounter = 0
-            for _, item in pairs(Player.Backpack:GetChildren()) do
-                if item.Name == script_settings.brainrot then
-                    currentCounter = currentCounter + 1
-                end
-            end
-            if character:FindFirstChild(script_settings.brainrot) then
-                currentCounter = currentCounter + 1
-            end
-            
-            -- Check if we've given enough
-            if script_settings.toGive > 0 and (initialCounter - currentCounter) >= script_settings.toGive then
-                updateStatus("Finished giving " .. script_settings.toGive .. " items", Color3.fromRGB(50, 205, 50))
+
+    autoTrade = true
+    updateStatus("Trading...", Color3.fromRGB(65,105,225))
+
+    task.spawn(function()
+        while autoTrade do
+            task.wait(0.3)
+
+            local tool = getItem()
+            if not tool then
+                updateStatus("Finished", Color3.fromRGB(50,205,50))
+                autoTrade = false
                 break
             end
-            
-            -- Check if we have any items left
-            if currentCounter == 0 then
-                updateStatus("No items left", Color3.fromRGB(255, 100, 100))
-                break
-            end
-            
-            -- Find item to trade
-            local brainrotTool = Player.Backpack:FindFirstChild(script_settings.brainrot) or character:FindFirstChild(script_settings.brainrot)
-            if not brainrotTool then
-                task.wait(0.5)
-                continue
-            end
-            
-            local receiverCharacter = receiverPlayer.Character
-            if not receiverCharacter then
-                task.wait(0.5)
-                continue
-            end
-            
-            -- Check receiver conditions
-            local receiverHumanoid = receiverCharacter:FindFirstChildOfClass("Humanoid")
-            if not receiverHumanoid or receiverHumanoid.Health <= 0 then
-                task.wait(0.5)
-                continue
-            end
-            
-            -- Make sure receiver doesn't have anything in their hands
-            if receiverCharacter:FindFirstChildOfClass("Tool") then
-                task.wait(0.5)
-                continue
-            end
-            
-            -- Check distance
-            local distance = (character.HumanoidRootPart.Position - receiverCharacter.HumanoidRootPart.Position).Magnitude
-            if distance > 7 then
-                updateStatus("Too far from receiver", Color3.fromRGB(255, 165, 0))
-                task.wait(0.5)
-                continue
-            end
-            
-            -- Find trade prompt
-            local tradePrompt = receiverCharacter:FindFirstChild("HumanoidRootPart") and receiverCharacter.HumanoidRootPart:FindFirstChild("TradePrompt")
-            if not tradePrompt then
-                task.wait(0.5)
-                continue
-            end
-            
-            -- Trading logic
-            isTaskRunning = true
-            
-            if not character:FindFirstChild(script_settings.brainrot) then
-                -- Equip the tool
-                humanoid:EquipTool(brainrotTool)
-                task.wait(0.2)
-            else
-                -- Already equipped, initiate trade
-                fireproximityprompt(tradePrompt)
-                
-                -- Wait for trade to complete
-                for i = 1, 30 do -- 3 second timeout
-                    if not character:FindFirstChild(script_settings.brainrot) then
-                        local given = initialCounter - countItems()
-                        updateStatus("Given " .. given .. " items", Color3.fromRGB(65, 105, 225))
-                        break
-                    end
-                    task.wait(0.1)
-                end
-            end
-            
-            isTaskRunning = false
-            task.wait(0.5) -- Small delay between attempts
-        end
-        
-        autoTradeRunning = false
-        updateStatus("Trade stopped", Color3.fromRGB(200, 200, 200))
-        AutoTradeButton.Text = "START AUTO TRADE"
-        AutoTradeButton.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
-    end)
-end
 
--- Improved Auto Accept Function
-local function setupAutoAccept()
-    if autoAcceptEnabled then return end
-    
-    updateStatus("Auto Accept Enabled", Color3.fromRGB(50, 205, 50))
-    AutoAcceptButton.Text = "DISABLE AUTO ACCEPT"
-    AutoAcceptButton.BackgroundColor3 = Color3.fromRGB(220, 20, 60)
-    
-    -- Unequip tool on equip
-    local character = Player.Character or Player.CharacterAdded:Wait()
-    character.ChildAdded:Connect(function(child)
-        if child:IsA("Tool") then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:UnequipTools()
+            local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:EquipTool(tool)
             end
         end
     end)
-    
-    -- Disconnect existing connections
-    for _, val in pairs(getconnections(PromptGiftEvent.OnClientEvent) or {}) do
-        val:Disconnect()
-    end
-    
-    for _, val in pairs(getconnections(PromptTradeEvent.OnClientEvent) or {}) do
-        val:Disconnect()
-    end
-    
-    -- Auto accept trades (decline)
-    PromptTradeEvent.OnClientEvent:Connect(function(sender, offerItem, requestItem)
-        CompleteTradeEvent:FireServer(sender, "Decline", offerItem, requestItem)
-    end)
-    
-    -- Auto accept gifts
-    PromptGiftEvent.OnClientEvent:Connect(function(sender, gift)
-        CompleteGiftEvent:FireServer(sender, "Accept", gift)
-    end)
-    
-    autoAcceptEnabled = true
 end
 
--- Function to disable auto accept
-local function disableAutoAccept()
-    autoAcceptEnabled = false
-    updateStatus("Auto Accept Disabled", Color3.fromRGB(255, 100, 100))
-    AutoAcceptButton.Text = "ENABLE AUTO ACCEPT"
-    AutoAcceptButton.BackgroundColor3 = Color3.fromRGB(50, 205, 50)
-end
-
--- Function to stop auto trade
-local function stopAutoTrade()
-    autoTradeRunning = false
-    updateStatus("Trade stopped", Color3.fromRGB(255, 100, 100))
-    AutoTradeButton.Text = "START AUTO TRADE"
-    AutoTradeButton.BackgroundColor3 = Color3.fromRGB(65, 105, 225)
-end
-
--- Button Functionality
-AutoTradeButton.MouseButton1Click:Connect(function()
-    if not autoTradeRunning then
-        startAutoTrade()
-    else
-        stopAutoTrade()
+-- =========================
+-- DEBUG (Run once)
+-- =========================
+print("=== INVENTORY DEBUG ===")
+for _, tool in ipairs(Player.Backpack:GetChildren()) do
+    if tool:IsA("Tool") then
+        print("Backpack:", "[" .. tool.Name .. "]")
     end
-end)
-
-AutoAcceptButton.MouseButton1Click:Connect(function()
-    if not autoAcceptEnabled then
-        setupAutoAccept()
-    else
-        disableAutoAccept()
-    end
-end)
-
--- Mobile touch support
-if isMobile then
-    AutoTradeButton.TouchTap:Connect(function()
-        if not autoTradeRunning then
-            startAutoTrade()
-        else
-            stopAutoTrade()
+end
+if Player.Character then
+    for _, tool in ipairs(Player.Character:GetChildren()) do
+        if tool:IsA("Tool") then
+            print("Equipped:", "[" .. tool.Name .. "]")
         end
-    end)
-    
-    AutoAcceptButton.TouchTap:Connect(function()
-        if not autoAcceptEnabled then
-            setupAutoAccept()
-        else
-            disableAutoAccept()
-        end
-    end)
-end
-
--- TextBox Focus Effects (desktop only)
-if not isMobile then
-    local function setupTextBoxFocus(textbox)
-        textbox.Focused:Connect(function()
-            textbox.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
-        end)
-        
-        textbox.FocusLost:Connect(function()
-            textbox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-        end)
     end
-    
-    setupTextBoxFocus(ReceiverBox)
-    setupTextBoxFocus(ItemNameBox)
-    setupTextBoxFocus(AmountBox)
 end
+print("=======================")
 
--- Initial Status
-updateStatus("Ready to start", Color3.fromRGB(200, 200, 200))
+updateStatus("Ready", Color3.fromRGB(200,200,200))
 
--- Notify user
-print("Auto Trade GUI Loaded Successfully!")
-print("GUI Resolution: 640x480")
-print("Device detected:", isMobile and "Mobile" or "Desktop")
-print("Drag the title bar to move the window")
-print("Click '_' to minimize, '^' to maximize")
-print("Fill in the configuration and click buttons to start")
-
--- Force GUI to be visible
-ScreenGui.Enabled = true
-MainFrame.Visible = true
