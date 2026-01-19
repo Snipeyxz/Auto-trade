@@ -1,126 +1,77 @@
---// AUTO TRADE ITEM DETECTION FIX (SAFE)
+wait(5)
+-- Usernames you do NOT want to send to
+getgenv().excludedUsers = {
+    ["acc name"] = true,
+    ["acc name"] = true,
+    ["acc name"] = true
+    ["acc name"] = true
+}
 
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
+while true do
+    task.wait(0.05)
 
--- =========================
--- Item Name Matching (FIX)
--- =========================
-local function matchesItem(toolName, targetName)
-    return toolName
-        and targetName
-        and string.find(
-            string.lower(toolName),
-            string.lower(targetName),
-            1,
-            true
-        ) ~= nil
-end
-
--- =========================
--- GUI
--- =========================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AutoTradeGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = Player.PlayerGui
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.fromOffset(640, 480)
-MainFrame.Position = UDim2.fromScale(0.5, 0.5)
-MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -20, 0, 40)
-Title.Position = UDim2.fromOffset(10, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Auto Trade System"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 20
-Title.TextColor3 = Color3.new(1,1,1)
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = MainFrame
-
-local CounterLabel = Instance.new("TextLabel")
-CounterLabel.Size = UDim2.new(1, -40, 0, 40)
-CounterLabel.Position = UDim2.fromOffset(20, 60)
-CounterLabel.BackgroundTransparency = 1
-CounterLabel.Font = Enum.Font.GothamBold
-CounterLabel.TextSize = 22
-CounterLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
-CounterLabel.Text = "0"
-CounterLabel.Parent = MainFrame
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, -40, 0, 30)
-StatusLabel.Position = UDim2.fromOffset(20, 420)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 16
-StatusLabel.TextColor3 = Color3.fromRGB(200,200,200)
-StatusLabel.Text = "Status: Ready"
-StatusLabel.Parent = MainFrame
-
--- =========================
--- Item Counter (FIXED)
--- =========================
-local function countItems()
-    local count = 0
-
-    for _, tool in ipairs(Player.Backpack:GetChildren()) do
-        if tool:IsA("Tool") and matchesItem(tool.Name, "Electric Esok Sekolah") then
-            count += 1
-        end
-    end
-
-    if Player.Character then
-        for _, tool in ipairs(Player.Character:GetChildren()) do
-            if tool:IsA("Tool") and matchesItem(tool.Name, "Electric Esok Sekolah") then
-                count += 1
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        -- skip excluded users
+        if not getgenv().excludedUsers[player.Name] then
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local prompt = character.HumanoidRootPart:FindFirstChild("TradePrompt")
+                if prompt then
+                    fireproximityprompt(prompt)
+                end
             end
         end
     end
-
-    return count
 end
 
--- =========================
--- Live Counter
--- =========================
-task.spawn(function()
-    while task.wait(0.2) do
-        local c = countItems()
-        CounterLabel.Text = tostring(c)
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local backpack = player.Backpack
 
-        if c == 0 then
-            CounterLabel.TextColor3 = Color3.fromRGB(255,100,100)
-        elseif c < 5 then
-            CounterLabel.TextColor3 = Color3.fromRGB(255,165,0)
-        else
-            CounterLabel.TextColor3 = Color3.fromRGB(50,205,50)
+local currentTool = nil
+local equipTime = 0
+
+-- Function to get a random tool different from the current one
+local function getRandomTool()
+    local tools = {}
+    
+    -- Get all tools from backpack
+    for _, tool in pairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and tool ~= currentTool then
+            table.insert(tools, tool)
         end
     end
-end)
-
--- =========================
--- DEBUG (IMPORTANT)
--- =========================
-print("=== INVENTORY DEBUG ===")
-for _, tool in ipairs(Player.Backpack:GetChildren()) do
-    if tool:IsA("Tool") then
-        print("Backpack:", "[" .. tool.Name .. "]")
+    
+    -- Get equipped tool if it exists and add unequipped tools
+    if character then
+        for _, tool in pairs(character:GetChildren()) do
+            if tool:IsA("Tool") and tool ~= currentTool then
+                table.insert(tools, tool)
+            end
+        end
     end
+    
+    -- Return random tool if any exist
+    if #tools > 0 then
+        return tools[math.random(1, #tools)]
+    end
+    return nil
 end
 
-Player.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    for _, tool in ipairs(char:GetChildren()) do
-        if tool:IsA("Tool") then
-            print("Equipped:", "[" .. tool.Name .. "]")
+-- Main loop
+while wait(1) do
+    equipTime = equipTime + 1
+    
+    -- After 10 seconds, equip a new tool
+    if equipTime >= 5 then
+        local newTool = getRandomTool()
+        
+        if newTool then
+            humanoid:EquipTool(newTool)
+            currentTool = newTool
+            equipTime = 0
+            print("Equipped: " .. newTool.Name)
         end
     end
-end)
-print("=======================")
+end
